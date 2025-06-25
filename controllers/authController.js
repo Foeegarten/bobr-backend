@@ -40,7 +40,7 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ message: `Registration failed ${error.message}` });
   }
 };
 
@@ -52,13 +52,13 @@ exports.login = async (req, res) => {
     // Находим пользователя с паролем
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ message: 'User not found' });
     }
 
     // Используем метод comparePassword из модели User
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid password' });
+      return res.status(401).json({ message: 'Invalid password' });
     }
 
     // Генерация токена
@@ -81,7 +81,7 @@ exports.login = async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ message: 'Login failed' });
   }
 };
 
@@ -89,4 +89,20 @@ exports.login = async (req, res) => {
 exports.logout = (req, res) => {
   res.clearCookie('token');
   res.json({ message: 'Logged out successfully' });
+};
+
+
+exports.currentUser = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    res.json({ user });
+  } catch (err) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
 };
