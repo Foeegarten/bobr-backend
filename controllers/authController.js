@@ -1,92 +1,152 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
-// Регистрация
+// Генерация JWT токена
+const generateToken = (userId) => {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    expiresIn: '24h'
+  });
+};
+
+// Регистрация пользователя
 exports.register = async (req, res) => {
+  const { username, email, password } = req.body;
+
+  // Валидация обязательных полей
+  if (!username || !email || !password) {
+    return res.status(400).json({ 
+      error: 'Все поля обязательны для заполнения: username, email, password' 
+    });
+  }
+
   try {
-    const { username, email, password } = req.body;
-    
-    // Проверка на существующего пользователя
+    // Проверка существующего пользователя
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      return res.status(400).json({ 
-        error: existingUser.email === email 
-          ? 'Email already in use' 
-          : 'Username already taken' 
+      const errorField = existingUser.email === email ? 'email' : 'username';
+      return res.status(409).json({ 
+        error: `${errorField === 'email' ? 'Email' : 'Имя пользователя'} уже используется` 
       });
     }
 
-    // Создание пользователя
+    // Создание нового пользователя
     const user = new User({ username, email, password });
     await user.save();
 
     // Генерация токена
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { 
-      expiresIn: '24h' 
-    });
+    const token = generateToken(user._id);
 
-    // Установка куки
+    // Установка httpOnly куки
     res.cookie('token', token, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 1 день
+      secure: process.env.NODE_ENV === 'production', // HTTPS в продакшене
+      maxAge: 24 * 60 * 60 * 1000, // 1 день
+      sameSite: 'strict'
     });
 
-    res.status(201).json({
+    // Ответ без пароля
+    return res.status(201).json({
       user: {
         id: user._id,
         username: user.username,
         email: user.email
       }
     });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+
+  } catch (err) {
+    console.error('Ошибка регистрации:', err);
+    
+    // Обработка ошибок валидации Mongoose
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ error: errors.join(', ') });
+    }
+    
+    return res.status(500).json({ error: 'Ошибка сервера при регистрации' });
   }
 };
 
-// Логин
+// Логин пользователя
 exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    // Находим пользователя с паролем
+  // Базовая валидация
+  if (!email || !password) {
+    return res.status(400).json({ 
+      error: 'Email и пароль обязательны' 
+    });
+  }
+
+  try {
+    // Поиск пользователя с паролем
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ 
+        error: 'Неверные учетные данные' 
+      });
     }
 
-    // Используем метод comparePassword из модели User
+    // Проверка пароля
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid password' });
+      return res.status(401).json({ 
+        error: 'Неверные учетные данные' 
+      });
     }
 
     // Генерация токена
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { 
-      expiresIn: '24h' 
-    });
+    const token = generateToken(user._id);
 
     // Установка куки
     res.cookie('token', token, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: 'strict'
     });
 
-    res.json({
+    // Ответ
+    return res.json({
       user: {
         id: user._id,
         username: user.username,
         email: user.email
       }
     });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+
+  } catch (err) {
+    console.error('Ошибка входа:', err);
+    return res.status(500).json({ error: 'Ошибка сервера при входе' });
   }
 };
 
-// Выход
+// Выход пользователя
 exports.logout = (req, res) => {
   res.clearCookie('token');
-  res.json({ message: 'Logged out successfully' });
+  return res.json({ message: 'Выход выполнен успешно' });
+};
+
+// Получение текущего пользователя
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'Пользователь не найден' 
+      });
+    }
+    
+    return res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
+    });
+    
+  } catch (err) {
+    console.error('Ошибка получения профиля:', err);
+    return res.status(500).json({ error: 'Ошибка сервера' });
+  }
 };
