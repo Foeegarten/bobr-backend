@@ -53,6 +53,7 @@ exports.register = async (req, res) => {
         email: user.email
       }
     });
+<<<<<<< HEAD
 
   } catch (err) {
     console.error('Ошибка регистрации:', err);
@@ -64,6 +65,11 @@ exports.register = async (req, res) => {
     }
     
     return res.status(500).json({ error: 'Ошибка сервера при регистрации' });
+=======
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ message: `Registration failed ${error.message}` });
+>>>>>>> 1a7bb4403e3e5144472a28aa045f037e7f4e36a5
   }
 };
 
@@ -82,17 +88,25 @@ exports.login = async (req, res) => {
     // Поиск пользователя с паролем
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+<<<<<<< HEAD
       return res.status(401).json({ 
         error: 'Неверные учетные данные' 
       });
+=======
+      return res.status(401).json({ message: 'User not found' });
+>>>>>>> 1a7bb4403e3e5144472a28aa045f037e7f4e36a5
     }
 
     // Проверка пароля
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+<<<<<<< HEAD
       return res.status(401).json({ 
         error: 'Неверные учетные данные' 
       });
+=======
+      return res.status(401).json({ message: 'Invalid password' });
+>>>>>>> 1a7bb4403e3e5144472a28aa045f037e7f4e36a5
     }
 
     // Генерация токена
@@ -114,16 +128,23 @@ exports.login = async (req, res) => {
         email: user.email
       }
     });
+<<<<<<< HEAD
 
   } catch (err) {
     console.error('Ошибка входа:', err);
     return res.status(500).json({ error: 'Ошибка сервера при входе' });
+=======
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Login failed' });
+>>>>>>> 1a7bb4403e3e5144472a28aa045f037e7f4e36a5
   }
 };
 
 // Выход пользователя
 exports.logout = (req, res) => {
   res.clearCookie('token');
+<<<<<<< HEAD
   return res.json({ message: 'Выход выполнен успешно' });
 };
 
@@ -148,5 +169,23 @@ exports.getMe = async (req, res) => {
   } catch (err) {
     console.error('Ошибка получения профиля:', err);
     return res.status(500).json({ error: 'Ошибка сервера' });
+=======
+  res.json({ message: 'Logged out successfully' });
+};
+
+
+exports.currentUser = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    res.json({ user });
+  } catch (err) {
+    return res.status(401).json({ message: 'Unauthorized' });
+>>>>>>> 1a7bb4403e3e5144472a28aa045f037e7f4e36a5
   }
 };

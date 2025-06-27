@@ -5,11 +5,17 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 
+require('dotenv').config();
 const app = express();
 
+<<<<<<< HEAD
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL,
+=======
+app.use(cors({
+  origin: 'http://localhost:5173',
+>>>>>>> 1a7bb4403e3e5144472a28aa045f037e7f4e36a5
   credentials: true
 }));
 app.use(express.json());
