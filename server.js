@@ -3,13 +3,19 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const cors = require('cors'); 
-const path = require('path'); 
+const cors = require('cors');
+const morgan = require('morgan');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+
 
 dotenv.config();
 
 const app = express();
 
+
+app.use(morgan('dev'));
+app.use(cookieParser());
 
 app.use(cors());
 
