@@ -6,18 +6,16 @@ const multer = require('multer');
 const Scene = require('../models/Scene');
 const authMiddleware = require('../middleware/auth.js');
 
-// Настройка Multer для сохранения аудиофайлов в память (MemoryStorage)
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- POST /api/scenes ---
-// Создать новую сцену
+
 router.post('/', authMiddleware, upload.single('audioFile'), async (req, res) => {
     try {
         console.log('Received POST /api/scenes request.');
         console.log('Request body:', req.body);
         console.log('Request file (audioFile):', req.file);
 
-        // Получаем ID пользователя из токена, установленный authMiddleware
         const userId = req.user && req.user.id ? req.user.id : null;
         console.log('User ID from token:', userId);
 
@@ -33,7 +31,7 @@ router.post('/', authMiddleware, upload.single('audioFile'), async (req, res) =>
             return res.status(400).json({ message: 'YouTube link is required' });
         }
 
-        // Если файл был загружен, req.file будет содержать его данные
+  
         const audioData = req.file ? req.file.buffer : null;
         const audioMimeType = req.file ? req.file.mimetype : null;
 
@@ -41,7 +39,7 @@ router.post('/', authMiddleware, upload.single('audioFile'), async (req, res) =>
         console.log('Parsed audioMimeType:', audioMimeType);
 
         const newScene = new Scene({
-            userId, // Убедись, что userId здесь корректен (ObjectId)
+            userId, 
             youtubeLink,
             startTimecode: parseFloat(startTimecode || 0),
             endTimecode: parseFloat(endTimecode || 0),
@@ -52,7 +50,7 @@ router.post('/', authMiddleware, upload.single('audioFile'), async (req, res) =>
 
         console.log('New Scene object before saving:', newScene);
 
-        await newScene.save(); // Попытка сохранить в базу данных
+        await newScene.save(); 
         console.log('Scene saved successfully to DB. Scene ID:', newScene._id);
 
         res.status(201).json({ message: 'Scene created successfully', sceneId: newScene._id });
@@ -61,7 +59,7 @@ router.post('/', authMiddleware, upload.single('audioFile'), async (req, res) =>
         console.error('--- Error creating scene (500 Server Error) ---');
         console.error('Error message:', error.message);
         console.error('Error stack:', error.stack);
-        // Дополнительные проверки для конкретных типов ошибок
+
         if (error.name === 'ValidationError') {
             console.error('Mongoose Validation Error details:', error.errors);
             return res.status(400).json({ message: 'Validation failed', errors: error.errors });
@@ -75,7 +73,7 @@ router.post('/', authMiddleware, upload.single('audioFile'), async (req, res) =>
 });
 
 // --- GET /api/scenes/:id ---
-// Получить данные сцены по ID
+
 router.get('/:id', authMiddleware, async (req, res) => {
     try {
         console.log('Received GET /api/scenes/:id request for ID:', req.params.id);
@@ -92,7 +90,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
         console.log('Found scene. isPublic:', scene.isPublic, 'Scene userId:', scene.userId);
 
-        // Проверка прав доступа:
+
         if (scene.isPublic) {
             console.log('Scene is public, allowing access.');
             return res.status(200).json(scene);
@@ -119,7 +117,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // --- PUT /api/scenes/:id ---
-// Обновить существующую сцену
+
 router.put('/:id', authMiddleware, upload.single('audioFile'), async (req, res) => {
     try {
         console.log('Received PUT /api/scenes/:id request for ID:', req.params.id);
@@ -146,34 +144,32 @@ router.put('/:id', authMiddleware, upload.single('audioFile'), async (req, res) 
 
         console.log('Found scene. Owner ID:', scene.userId);
 
-        // Только владелец сцены может ее обновлять
         if (scene.userId.toString() !== userId.toString()) {
             console.warn('Access denied: User ID mismatch for PUT request.');
             return res.status(403).json({ message: 'Forbidden: You are not the owner of this scene' });
         }
 
-        // Обновляем поля, если они переданы в запросе
         if (youtubeLink !== undefined) scene.youtubeLink = youtubeLink;
         if (startTimecode !== undefined) scene.startTimecode = parseFloat(startTimecode);
         if (endTimecode !== undefined) scene.endTimecode = parseFloat(endTimecode);
         if (transcript !== undefined) scene.transcript = transcript;
 
-        // isPublic приходит как строка ('true'/'false') из FormData
+
         if (isPublic !== undefined) scene.isPublic = isPublic === 'true';
 
-        // Если загружен новый аудиофайл, обновляем audioData и audioMimeType
+
         if (req.file) {
             scene.audioData = req.file.buffer;
             scene.audioMimeType = req.file.mimetype;
             console.log('New audio file received and set.');
-        } else if (clearAudio === 'true') { // Опция: если фронтенд явно просит удалить аудио
-            scene.audioData = undefined; // Удаляем данные
-            scene.audioMimeType = undefined; // Удаляем MIME-тип
+        } else if (clearAudio === 'true') { 
+            scene.audioData = undefined;
+            scene.audioMimeType = undefined; 
             console.log('Audio data cleared.');
         }
 
         console.log('Scene object before updating:', scene);
-        await scene.save(); // Попытка сохранить обновленную сцену
+        await scene.save(); 
         console.log('Scene updated successfully to DB.');
 
         res.status(200).json({ message: 'Scene updated successfully', scene });

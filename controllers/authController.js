@@ -1,13 +1,13 @@
 // authController.js
 
-const User = require('../models/User'); // Предполагается, что у тебя есть модель User
+const User = require('../models/User'); 
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs'); // Для хеширования паролей
+const bcrypt = require('bcryptjs'); 
 
 // Генерация JWT токена
 const generateToken = (userId) => {
     return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-        expiresIn: '24h' // Токен действует 24 часа
+        expiresIn: '24h' 
     });
 };
 
@@ -32,35 +32,33 @@ exports.register = async (req, res) => {
             });
         }
 
-        // Создание нового пользователя
-        const user = new User({ username, email, password }); // Предполагается, что в User Model есть pre-save hook для хеширования пароля
+        const user = new User({ username, email, password }); 
         await user.save();
 
-        // Генерация токена
         const token = generateToken(user._id);
 
-        // Установка httpOnly куки
+ 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production', // true в продакшене (требует HTTPS)
-            maxAge: 24 * 60 * 60 * 1000, // 1 день
-            sameSite: 'strict' // Защита от CSRF
+            secure: process.env.NODE_ENV === 'production', 
+            maxAge: 24 * 60 * 60 * 1000, 
+            sameSite: 'strict' 
         });
 
-        // Ответ с данными пользователя и токеном в теле ответа
+  
         return res.status(201).json({
             user: {
                 id: user._id,
                 username: user.username,
                 email: user.email
             },
-            token: token // <--- Токен теперь возвращается в теле ответа
+            token: token 
         });
 
     } catch (err) {
         console.error('Ошибка регистрации:', err);
 
-        // Обработка ошибок валидации Mongoose (если есть)
+
         if (err.name === 'ValidationError') {
             const errors = Object.values(err.errors).map(e => e.message);
             return res.status(400).json({ error: errors.join(', ') });
@@ -70,11 +68,11 @@ exports.register = async (req, res) => {
     }
 };
 
-// Логин пользователя
+
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 
-    // Базовая валидация
+ 
     if (!email || !password) {
         return res.status(400).json({
             error: 'Email и пароль обязательны'
@@ -82,8 +80,7 @@ exports.login = async (req, res) => {
     }
 
     try {
-        // Поиск пользователя по email
-        // .select('+password') нужен, если ты скрываешь пароль по умолчанию в схеме модели
+
         const user = await User.findOne({ email }).select('+password');
         if (!user) {
             return res.status(401).json({
@@ -91,8 +88,6 @@ exports.login = async (req, res) => {
             });
         }
 
-        // Проверка пароля
-        // Предполагается, что у User Model есть метод comparePassword
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
             return res.status(401).json({
@@ -100,10 +95,9 @@ exports.login = async (req, res) => {
             });
         }
 
-        // Генерация токена
+  
         const token = generateToken(user._id);
 
-        // Установка httpOnly куки
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -111,14 +105,14 @@ exports.login = async (req, res) => {
             sameSite: 'strict'
         });
 
-        // Ответ с данными пользователя и токеном в теле ответа
+
         return res.json({
             user: {
                 id: user._id,
                 username: user.username,
                 email: user.email
             },
-            token: token // <--- Токен теперь возвращается в теле ответа
+            token: token 
         });
 
     } catch (err) {
@@ -127,19 +121,18 @@ exports.login = async (req, res) => {
     }
 };
 
-// Выход пользователя
+
 exports.logout = (req, res) => {
-    // Очистка куки с токеном
+
     res.clearCookie('token');
     return res.json({ message: 'Выход выполнен успешно' });
 };
 
-// Получение текущего пользователя (защищенный маршрут)
+
 exports.getMe = async (req, res) => {
     try {
-        // Предполагается, что authMiddleware установил req.userId или req.user.id
-        // Проверь, что именно устанавливает твой authMiddleware
-        const user = await User.findById(req.userId || req.user.id).select('-password'); // Исключаем пароль из ответа
+
+        const user = await User.findById(req.userId || req.user.id).select('-password'); 
         if (!user) {
             return res.status(404).json({
                 error: 'Пользователь не найден'

@@ -11,23 +11,23 @@ const SceneSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    startTimecode: { // Начальный таймкод видео для сцены в секундах
+    startTimecode: { 
         type: Number,
         default: 0
     },
-    endTimecode: {   // Конечный таймкод видео (или просто текущий при записи)
+    endTimecode: {   
         type: Number,
         default: 0
     },
-    transcript: {    // Текст транскрипта
+    transcript: {   
         type: String,
         default: ''
     },
-    audioData: {     // Бинарные данные аудио (BLOB)
+    audioData: {    
         type: Buffer,
         required: false 
     },
-    audioMimeType: { // MIME-тип аудио (например, 'audio/webm')
+    audioMimeType: {
         type: String,
         required: false
     },
