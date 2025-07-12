@@ -11,6 +11,7 @@ const SceneSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    youtubeTitle: { type: String, default: '' },
     startTimecode: { 
         type: Number,
         default: 0

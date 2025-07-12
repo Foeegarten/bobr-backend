@@ -5,6 +5,7 @@ const router = express.Router();
 const multer = require('multer');
 const Scene = require('../models/Scene');
 const authMiddleware = require('../middleware/auth.js');
+const {extractVideoId, fetchYouTubeTitle} = require("../utils/youte.utils");
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -31,7 +32,10 @@ router.post('/', authMiddleware, upload.single('audioFile'), async (req, res) =>
             return res.status(400).json({ message: 'YouTube link is required' });
         }
 
-  
+
+        const videoId = extractVideoId(youtubeLink);
+        const youtubeTitle = await fetchYouTubeTitle(videoId);
+
         const audioData = req.file ? req.file.buffer : null;
         const audioMimeType = req.file ? req.file.mimetype : null;
 
@@ -41,6 +45,7 @@ router.post('/', authMiddleware, upload.single('audioFile'), async (req, res) =>
         const newScene = new Scene({
             userId, 
             youtubeLink,
+            youtubeTitle,
             startTimecode: parseFloat(startTimecode || 0),
             endTimecode: parseFloat(endTimecode || 0),
             transcript: transcript || '',
