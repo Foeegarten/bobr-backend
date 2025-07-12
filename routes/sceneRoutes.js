@@ -186,4 +186,75 @@ router.put('/:id', authMiddleware, upload.single('audioFile'), async (req, res) 
     }
 });
 
+// --- GET /api/scenes ---
+
+router.get('/', authMiddleware, async (req, res) => {
+    try {
+        console.log('Received GET /api/scenes request.');
+        const userId = req.user && req.user.id ? req.user.id : null;
+        console.log('User ID from token for GET ALL:', userId);
+
+        const scenes = await Scene.find({
+            $or: [
+                { isPublic: true },
+                { userId }
+            ]
+        }).sort({ createdAt: -1 });
+
+        console.log(`Found ${scenes.length} scenes matching criteria.`);
+        res.status(200).json(scenes);
+
+    } catch (error) {
+        console.error('--- Error fetching all scenes (500 Server Error) ---');
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ message: 'Server error during scene list fetch.' });
+    }
+});
+
+// --- DELETE /api/scenes/:id ---
+
+router.delete('/:id', authMiddleware, async (req, res) => {
+    try {
+        console.log('Received DELETE /api/scenes/:id request for ID:', req.params.id);
+        const { id } = req.params;
+        const userId = req.user && req.user.id ? req.user.id : null;
+
+        if (!userId) {
+            console.error('Error: User ID not found in token for DELETE request.');
+            return res.status(401).json({ message: 'Unauthorized: User ID missing.' });
+        }
+
+        const scene = await Scene.findById(id);
+
+        if (!scene) {
+            console.log('Scene not found for ID:', id);
+            return res.status(404).json({ message: 'Scene not found' });
+        }
+
+        if (scene.userId.toString() !== userId.toString()) {
+            console.warn('Access denied: User ID mismatch for DELETE request.');
+            return res.status(403).json({ message: 'Forbidden: You are not the owner of this scene' });
+        }
+
+        await Scene.findByIdAndDelete(id);
+        console.log('Scene deleted successfully with ID:', id);
+
+        res.status(200).json({ message: 'Scene deleted successfully' });
+
+    } catch (error) {
+        console.error('--- Error deleting scene (500 Server Error) ---');
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+
+        if (error.name === 'CastError') {
+            console.error('CastError: Invalid scene ID format for DELETE request.');
+            return res.status(400).json({ message: 'Invalid scene ID' });
+        }
+
+        res.status(500).json({ message: 'Server error during scene deletion.' });
+    }
+});
+
+
 module.exports = router;
