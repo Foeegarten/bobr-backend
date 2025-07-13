@@ -16,11 +16,11 @@ const app = express();
 
 app.use(morgan('dev'));
 app.use(cookieParser());
-
 app.use(cors({
-    origin: 'http://localhost:5173', // или твой домен
-    credentials: true
-}));
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}))
 
 
 app.use(express.json());
@@ -41,7 +41,7 @@ connectDB();
 // --- Роуты ---
 
 const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes); 
+app.use('/api/auth', authRoutes);
 
 const sceneRoutes = require('./routes/sceneRoutes');
 app.use('/api/scenes', sceneRoutes);
