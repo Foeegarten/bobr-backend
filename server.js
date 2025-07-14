@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const morgan = require('morgan');
-const path = require('path');
 const cookieParser = require('cookie-parser');
 
 
@@ -17,10 +16,9 @@ const app = express();
 app.use(morgan('dev'));
 app.use(cookieParser());
 app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}))
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
+}));
 
 
 app.use(express.json());
